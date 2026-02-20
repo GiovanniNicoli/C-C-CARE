@@ -207,7 +207,7 @@ const exportStatsToCsv = (stats, filename, childName) => {
     const headers = ["nome", "modalità", "consistenza", "adeguatezza", "autonomia", "iniziativa", "presenza", "adeguatezza", "dipendenza", "attenzione condivisa", "efficacia", "TUTORIALE", "DIDATTICO", "DIRETTIVO", "CONVERSAZIONALE", "ASINCRONICO"];
     const formatValue = (value) => typeof value === 'number' ? value.toFixed(2).replace('.', ',') : value;
     const dataRow = [
-        childName || "", stats.communicativeMode, stats.ttCons * 100, stats.ttAd * 100, stats.aut * 100, stats.in * 100, stats.ecPres * 100, stats.ecAd * 100, stats.ecDep * 100, stats.ja * 100, stats.cei,
+        childName || "", stats.commModePercent, stats.ttCons * 100, stats.ttAd * 100, stats.aut * 100, stats.in * 100, stats.ecPres * 100, stats.ecAd * 100, stats.ecDep * 100, stats.ja * 100, stats.cei,
         stats.parentalStyle.percentages.TUTORIAL, stats.parentalStyle.percentages.DIDACTIC, stats.parentalStyle.percentages.DIRECTIVE, stats.parentalStyle.percentages.CONVERSATIONAL, stats.parentalStyle.percentages.ASYNCHRONOUS
     ].map(formatValue);
     const separator = ';';
@@ -217,8 +217,6 @@ const exportStatsToCsv = (stats, filename, childName) => {
     const link = document.createElement("a");
     if (link.download !== undefined) { const url = URL.createObjectURL(blob); link.setAttribute("href", url); link.setAttribute("download", filename); document.body.appendChild(link); link.click(); document.body.removeChild(link); }
 };
-
-// --- AGGIUNGI QUESTO BLOCCO DOPO LA FUNZIONE exportRawDataToCsv ---
 
 const exportProgressionToExcel = (turns, filename) => {
     if (!turns || turns.length === 0) { alert("Nessun dato da esportare."); return; }
@@ -240,7 +238,7 @@ const exportProgressionToExcel = (turns, filename) => {
                 "Turno (Cumulativo)": i + 1,
                 "Ultimo Timestamp": currentSubset[i].timestamp.toFixed(2).replace('.', ','),
                 "CEI": stats.cei.toFixed(2).replace('.', ','),
-                "Modalità Comunicativa": stats.communicativeMode,
+                "Modalità Comunicativa %": stats.commModePercent.toFixed(2).replace('.', ','),
                 "Vocalizzazione Prev.": stats.predominantVocalization,
                 "TT Consistenza %": (stats.ttCons * 100).toFixed(2).replace('.', ','),
                 "TT Adeguatezza %": (stats.ttAd * 100).toFixed(2).replace('.', ','),
@@ -501,44 +499,38 @@ const TurnForm = ({ turnData, onDataChange, children }) => {
                         </div>
                     </div>
                     <div>
-                        {/* 1. Ridotto il margine inferiore dell'etichetta */}
-<label className="text-base font-medium text-emerald-300 whitespace-nowrap min-w-[120px]">Azioni bambino</label>
-
-<div className="flex-grow grid grid-cols-2 gap-2 items-end">
-    {/* 2. Colonna Sinistra: Parte 1 */}
-    <div>
-        <input 
-            type="text" 
-            name="childAction1" 
-            value={turnData.childAction1} 
-            onChange={handleChange} 
-            placeholder="Parte 1..." 
-            className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base" 
-        />
-    </div>
-
-    {/* 3. Colonna Destra: Checkbox + Parte 2 */}
-    <div className="flex flex-col">
-        {/* La checkbox ora sta "sopra" la Parte 2, ma entrambi sono affiancati alla Parte 1 */}
-        <label className="flex items-center space-x-2 text-base text-emerald-300 cursor-pointer mb-0.5">
-            <input 
-                type="checkbox" 
-                checked={turnData.childAction2 === 'guarda'} 
-                onChange={handleChildEyeContactToggle} 
-                className="form-checkbox h-3 w-3 bg-slate-600 border-slate-500 text-emerald-500 focus:ring-emerald-500 rounded" 
-            />
-            <span className="text-sm">Eye-contact</span>
-        </label>
-        <input 
-            type="text" 
-            name="childAction2" 
-            value={turnData.childAction2} 
-            onChange={handleChange} 
-            placeholder="Parte 2..." 
-            className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base" 
-        />
-    </div>
-</div>
+                        <label className="text-base font-medium text-emerald-300 whitespace-nowrap min-w-[120px]">Azioni bambino</label>
+                        <div className="flex-grow grid grid-cols-2 gap-2 items-end">
+                            <div>
+                                <input 
+                                    type="text" 
+                                    name="childAction1" 
+                                    value={turnData.childAction1} 
+                                    onChange={handleChange} 
+                                    placeholder="Parte 1..." 
+                                    className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base" 
+                                />
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="flex items-center space-x-2 text-base text-emerald-300 cursor-pointer mb-0.5">
+                                    <input 
+                                        type="checkbox" 
+                                        checked={turnData.childAction2 === 'guarda'} 
+                                        onChange={handleChildEyeContactToggle} 
+                                        className="form-checkbox h-3 w-3 bg-slate-600 border-slate-500 text-emerald-500 focus:ring-emerald-500 rounded" 
+                                    />
+                                    <span className="text-sm">Eye-contact</span>
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="childAction2" 
+                                    value={turnData.childAction2} 
+                                    onChange={handleChange} 
+                                    placeholder="Parte 2..." 
+                                    className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base" 
+                                />
+                            </div>
+                        </div>
                         <div className={`mt-2 flex items-center gap-4 transition-opacity duration-200 ${!turnData.auditoryOnly ? 'opacity-40 grayscale pointer-events-none' : 'opacity-100'}`}>
                            <label className="block text-base font-medium text-slate-300">Referente:</label>
                            <div className="flex items-center gap-3"><RadioButton name="referentState" value="none" checked={turnData.referentState === 'none'} onChange={handleChange} disabled={!turnData.auditoryOnly}>N/A</RadioButton><RadioButton name="referentState" value="taken" checked={turnData.referentState === 'taken'} onChange={handleChange} disabled={!turnData.auditoryOnly}><span className="text-lg" title="Referent Taken">□ Preso</span></RadioButton><RadioButton name="referentState" value="not_taken" checked={turnData.referentState === 'not_taken'} onChange={handleChange} disabled={!turnData.auditoryOnly}><span className="text-lg" title="Referent Not Taken">☒ Non Preso</span></RadioButton></div>
@@ -666,8 +658,18 @@ const ClassificationForm = ({ turn, onSave, onCancel, initialData, saveButtonTex
     useEffect(() => { if (isVerbal && vocalizationGroupRef.current) vocalizationGroupRef.current.focus(); }, [isVerbal]);
     useEffect(() => {
         const handleKeyDown = (e) => {
+            const activeTag = document.activeElement.tagName.toLowerCase();
+            const activeType = document.activeElement.type;
+            if ((activeTag === 'input' && !['checkbox', 'radio'].includes(activeType)) || activeTag === 'textarea') return;
+            
+            if (e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                const btn = document.getElementById('submit-classification-btn');
+                if (btn) btn.click();
+                return;
+            }
+            
             if (!isVerbal) return;
-            if (['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) return;
             const key = parseInt(e.key);
             if (!isNaN(key) && key >= 1 && key <= 8) {
                 const type = VOCALIZATION_TYPES[key - 1];
@@ -692,7 +694,7 @@ const ClassificationForm = ({ turn, onSave, onCancel, initialData, saveButtonTex
                 {isVerbal && (<Section title="2. Vocalization Type" onClear={() => handleClearRadio('vocalizationType')}><RadioGroup name="vocalizationType" options={VOCALIZATION_TYPES} selected={formData.vocalizationType} onChange={handleRadioChange} groupRef={vocalizationGroupRef} textSize="text-sm" showShortcuts={true} /></Section>)}
                 <div className="mt-6 p-4 bg-slate-700/50 rounded-lg text-sm text-slate-300"><h4 className="font-semibold text-slate-200 mb-2">Auto-derived from annotations:</h4><ul className="list-disc list-inside space-y-1"><li>Turn Inadequate: {turn.turnInadequate || turn.overlapping ? 'Yes' : 'No'}</li><li>New Information: {turn.newInformation ? 'Yes' : 'No'}</li><li>Auditory Only: {turn.auditoryOnly ? 'Yes' : 'No'}</li><li>Eye Contact Adequate: {turn.eyeContactAdequacy === 'adequate' ? 'Yes' : 'No'}</li><li>Shared Attention: {turn.focusComune ? 'Yes' : 'No'}</li></ul></div>
             </div>
-            <footer className="p-4 border-t border-slate-700 mt-auto flex gap-4 flex-shrink-0"><button type="button" onClick={onSkip || onCancel} className="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300">{cancelButtonText || 'Cancel'}</button><button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300">{saveButtonText || 'Save Classification'}</button></footer>
+            <footer className="p-4 border-t border-slate-700 mt-auto flex gap-4 flex-shrink-0"><button type="button" onClick={onSkip || onCancel} className="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300">{cancelButtonText || 'Cancel'}</button><button type="submit" id="submit-classification-btn" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300">{saveButtonText || 'Save Classification'}</button></footer>
         </form>
     );
 };
@@ -713,19 +715,19 @@ const EditAndClassifyPanel = ({ turn, onUpdateTurn, onSaveClassification, onCanc
 };
 
 // --- LOG & MODALS ---
-const TurnLog = ({ turns, onModifyTurn, onDeleteTurn, onSeek, onExport, onCalculateStats, onExportSession, isDataPresent, videoFilename, onStartStyleAnalysis, onStartClassification, onExportRawData }) => {
+const TurnLog = ({ turns, onModifyTurn, onDeleteTurn, onSeek, onExport, onCalculateStats, onExportSession, isDataPresent, videoFilename, onStartStyleAnalysis, onStartClassification, onExportRawData, referentsTaken, referentsNotTaken }) => {
     const turnLogRef = React.useRef(null);
     return (
         <div className="bg-gradient-to-br from-slate-800 to-slate-900/50 rounded-lg border border-slate-700">
             <header className="p-4 flex justify-between items-center flex-wrap gap-4 border-b border-slate-700">
-                <h2 className="text-xl font-semibold text-slate-300">Turn Timeline ({turns.length})</h2>
+                <h2 className="text-xl font-semibold text-slate-300">Turn Timeline ({turns.length}) <span className="text-sm text-slate-400 font-normal ml-2">({referentsTaken} presi - {referentsNotTaken} non presi)</span></h2>
                 <div className="flex gap-2 flex-wrap">
-                    <button onClick={onStartClassification} disabled={!isDataPresent} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Start Classification</button>
-                    <button onClick={onStartStyleAnalysis} disabled={!isDataPresent} className="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Analyze Parental Style</button>
-                    <button onClick={onCalculateStats} disabled={!isDataPresent} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Calculate Stats</button>
-                    <button onClick={onExportSession} disabled={!isDataPresent} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Save Session</button>
-                    <button onClick={onExport} disabled={!isDataPresent} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Export Turns to TXT</button>
-                    <button onClick={onExportRawData} disabled={!isDataPresent} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Export Raw Data (CSV)</button>
+                    <button onClick={onStartClassification} disabled={!isDataPresent} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Classificazione turni</button>
+                    <button onClick={onStartStyleAnalysis} disabled={!isDataPresent} className="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Stili comunicativi genitoriali</button>
+                    <button onClick={onCalculateStats} disabled={!isDataPresent} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Statistiche</button>
+                    <button onClick={onExportSession} disabled={!isDataPresent} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Salva</button>
+                    <button onClick={onExport} disabled={!isDataPresent} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Esporta in txt</button>
+                    <button onClick={onExportRawData} disabled={!isDataPresent} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Dati grezzi (viewer)</button>
                 </div>
             </header>
             <div className="p-4"><div id="turn-log-export-area" ref={turnLogRef} className="flex overflow-x-auto space-x-4 pb-4 h-[450px] items-start">{turns.length === 0 ? (<div className="w-full h-full flex items-center justify-center"><p className="text-slate-400 text-center py-8">No turns recorded yet.</p></div>) : (turns.map((turn, index) => (<TurnCard key={turn.id} turn={turn} index={index} onModifyTurn={onModifyTurn} onDeleteTurn={onDeleteTurn} onSeek={onSeek} isCompact={false} />)))}</div></div>
@@ -763,11 +765,11 @@ const StatisticsModal = ({ isOpen, onClose, stats, onExportStats, onExportStatsC
                     )}
                 </div>
                 <footer className="p-4 border-t border-slate-700 mt-auto flex justify-end gap-4 flex-wrap">
-                    <button type="button" onClick={onExportStats} disabled={!stats} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">Export Summary TXT</button>
-                    <button type="button" onClick={onExportStatsCsv} disabled={!stats} className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">Export Summary CSV</button>
-                    <button type="button" onClick={onExportStylesExcel} disabled={!stats} className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">Export Styles Table (xlsx)</button>
-                    <button type="button" onClick={onClose} className="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Close</button>
-					<button type="button" onClick={onExportProgression} disabled={!stats} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">Export Progression (XLSX)</button>
+                    <button type="button" onClick={onExportStats} disabled={!stats} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">Resoconto formato testuale</button>
+                    <button type="button" onClick={onExportStatsCsv} disabled={!stats} className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">Resoconto formato excel</button>
+                    <button type="button" onClick={onExportStylesExcel} disabled={!stats} className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">Tabella stili comunicativi (xlsx)</button>
+                    <button type="button" onClick={onClose} className="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Chiudi</button>
+                    <button type="button" onClick={onExportProgression} disabled={!stats} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">Progressione cumulativa (turno x turno)</button>
                 </footer>
             </div>
         </div>
@@ -775,8 +777,25 @@ const StatisticsModal = ({ isOpen, onClose, stats, onExportStats, onExportStatsC
 };
 
 const ParentalStyleClassifier = ({ turns, onUpdateTurnStyles, onFinish }) => {
-    const { useState, useMemo } = React;
+    const { useState, useMemo, useEffect } = React;
     const [currentIndex, setCurrentIndex] = useState(0);
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            const activeTag = document.activeElement.tagName.toLowerCase();
+            const activeType = document.activeElement.type;
+            if ((activeTag === 'input' && !['checkbox', 'radio'].includes(activeType)) || activeTag === 'textarea') return;
+            
+            if (e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                const btn = document.getElementById('style-next-btn');
+                if (btn && !btn.disabled) btn.click();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
     const handleParentCommChange = (turnId, strategyId, isChecked) => { const turnToUpdate = turns.find(t => t.id === turnId); if (!turnToUpdate) return; const currentClassification = turnToUpdate.classification || {}; const newParentComm = { ...currentClassification.parentCommunication, [strategyId]: isChecked }; const newClassification = { ...currentClassification, parentCommunication: newParentComm }; onUpdateTurnStyles(turnId, newClassification); };
     const groupedStrategies = useMemo(() => { const groups = { T: [], D: [], DC: [], C: [], A: [], UNCATEGORIZED: [] }; PARENT_COMM_STRATEGIES.forEach(strategy => { const styles = PARENT_COMM_STYLES[strategy.id]; if (styles && styles.length > 0) { styles.forEach(styleCode => { if (groups[styleCode]) groups[styleCode].push(strategy); }); } else { groups.UNCATEGORIZED.push(strategy); } }); return groups; }, []);
     const STYLES_CONFIG = { T: { label: 'Tutoriale', color: 'sky' }, D: { label: 'Didattico', color: 'emerald' }, DC: { label: 'Direttivo', color: 'amber' }, C: { label: 'Conversazionale', color: 'violet' }, A: { label: 'Asincronico', color: 'red' } };
@@ -790,7 +809,7 @@ const ParentalStyleClassifier = ({ turns, onUpdateTurnStyles, onFinish }) => {
                 <div className="lg:col-span-1 flex gap-4 overflow-y-auto pr-2"><div className="flex-1"><h2 className="text-lg font-semibold text-slate-300 mb-2">Turn {currentIndex + 1} (to classify)</h2>{turnToClassify && <TurnCard turn={turnToClassify} index={currentIndex} isCompact={true} />}</div><div className="flex-1"><h2 className="text-lg font-semibold text-slate-300 mb-2">Turn {currentIndex + 2} (context)</h2>{nextTurn ? (<TurnCard turn={nextTurn} index={currentIndex + 1} isCompact={true} />) : (<div className="text-slate-500 text-center p-4 h-full flex items-center justify-center bg-slate-800/50 rounded-lg border border-slate-700">End of timeline.</div>)}</div></div>
                 <div className="lg:col-span-1 overflow-y-auto pr-2"><div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start"><div className="space-y-4">{renderStyleBox('T')}{renderStyleBox('D')}</div><div className="space-y-4">{renderStyleBox('DC')}{renderStyleBox('C')}{renderStyleBox('A')}</div></div>{groupedStrategies.UNCATEGORIZED.length > 0 && (<div className="border border-slate-600 rounded-lg p-3 mt-4"><h4 className="font-semibold text-slate-400 mb-2">Uncategorized</h4><div className="space-y-2 text-sm">{groupedStrategies.UNCATEGORIZED.map(item => ( <label key={item.id} className="flex items-start space-x-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" name={item.id} checked={turnToClassify.classification?.parentCommunication?.[item.id] || false} onChange={(e) => handleParentCommChange(turnToClassify.id, item.id, e.target.checked)} className="form-checkbox mt-1 bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-500" /><span>{item.label}</span></label> ))}</div></div>)}</div>
             </main>
-            <footer className="flex-shrink-0 flex justify-center items-center gap-4 pt-4 border-t border-slate-700"><button onClick={() => setCurrentIndex(p => p - 1)} disabled={currentIndex === 0} className="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button><span className="font-semibold">{currentIndex + 1} / {turns.length}</span><button onClick={() => setCurrentIndex(p => p + 1)} disabled={currentIndex >= turns.length - 1} className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">Next</button></footer>
+            <footer className="flex-shrink-0 flex justify-center items-center gap-4 pt-4 border-t border-slate-700"><button onClick={() => setCurrentIndex(p => p - 1)} disabled={currentIndex === 0} className="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button><span className="font-semibold">{currentIndex + 1} / {turns.length}</span><button id="style-next-btn" onClick={() => setCurrentIndex(p => p + 1)} disabled={currentIndex >= turns.length - 1} className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">Next</button></footer>
         </div>
     );
 };
@@ -829,10 +848,14 @@ const App = () => {
     const videoRef = useRef(null);
 
     const stats = useMemo(() => calculateStatistics(turns), [turns]);
+    const referentsTaken = useMemo(() => turns.filter(t => t.referentState === 'taken').length, [turns]);
+    const referentsNotTaken = useMemo(() => turns.filter(t => t.referentState === 'not_taken').length, [turns]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) return;
+            const activeTag = document.activeElement.tagName.toLowerCase();
+            const activeType = document.activeElement.type;
+            if ((activeTag === 'input' && !['checkbox', 'radio'].includes(activeType)) || activeTag === 'textarea') return;
             if (!videoRef.current) return;
             if (e.key === 'ArrowLeft') { e.preventDefault(); videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 1); }
             else if (e.key === 'ArrowRight') { e.preventDefault(); videoRef.current.currentTime = Math.min(videoRef.current.duration, videoRef.current.currentTime + 1); }
@@ -877,9 +900,9 @@ const App = () => {
     const handleExportStats = (name) => exportStatsToTxt(stats, `summary_${videoFile?.name.split('.')[0] || 'session'}.txt`, name);
     const handleExportStatsCsv = (name) => exportStatsToCsv(stats, `summary_${videoFile?.name.split('.')[0] || 'session'}.csv`, name);
     const handleExportStylesExcel = () => exportStylesTableToExcel(turns, `styles_table_${videoFile?.name.split('.')[0] || 'session'}.xlsx`);
-	const handleExportProgression = () => {
+    const handleExportProgression = () => {
         exportProgressionToExcel(turns, `progressione_validazione_${videoFile?.name.split('.')[0] || 'session'}.xlsx`);
-	};
+    };
     
     const handleExportSession = () => { const sessionData = { videoFilename: videoFile?.name || 'no-video-session', analysisDate: new Date().toISOString(), turns }; const blob = new Blob([JSON.stringify(sessionData, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `session_${videoFile?.name.split('.')[0] || 'export'}.json`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); };
     const handleImportSession = (file) => { if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const data = JSON.parse(e.target.result); if (!data.videoFilename || !Array.isArray(data.turns)) throw new Error("Invalid session file format."); setTurns(data.turns); alert(`Session for "${data.videoFilename}" loaded. Please load the correct video file if it's part of this session.`); } catch (error) { alert(`Import error: ${error.message}`); } }; reader.readAsText(file); };
@@ -887,7 +910,6 @@ const App = () => {
     if (currentView === 'styleAnalysis') return <ParentalStyleClassifier turns={turns} onUpdateTurnStyles={handleUpdateTurnStyles} onFinish={() => setCurrentView('main')} />;
     if (currentView === 'sequentialClassification') return <SequentialClassifier turns={turns} onUpdateClassification={handleUpdateTurnClassification} onFinish={() => setCurrentView('main')} />;
 
-    // --- REVERTED TO BOXED LAYOUT ---
     return (
         <div className="min-h-screen bg-slate-900 text-gray-200 font-sans">
             <div className="max-w-[95%] mx-auto p-4">
@@ -896,9 +918,11 @@ const App = () => {
                 <main className="flex flex-col gap-8">
                     <div className="grid grid-cols-1 lg:grid-cols-11 gap-6 items-start">
                         <div className="lg:col-span-6"><VideoPlayer videoUrl={videoUrl} onFileChange={handleFileChange} onTimeUpdate={setCurrentTime} videoRef={videoRef} onImportSession={handleImportSession} onDurationChange={setVideoDuration} /></div>
-                        <div className="lg:col-span-5">{activeTurn ? (<EditAndClassifyPanel key={activeTurn.id} turn={activeTurn} onUpdateTurn={handleUpdateTurn} onSaveClassification={handleSaveClassification} onCancel={handleCancelEdit} />) : (<TurnRecorder onAddTurn={handleAddTurn} />)}</div>
+                        <div className="lg:col-span-5">
+                            {activeTurn ? (<EditAndClassifyPanel key={activeTurn.id} turn={activeTurn} onUpdateTurn={handleUpdateTurn} onSaveClassification={handleSaveClassification} onCancel={handleCancelEdit} />) : (<TurnRecorder onAddTurn={handleAddTurn} />)}
+                        </div>
                     </div>
-                    <div><TurnLog turns={turns} onDeleteTurn={handleDeleteTurn} onModifyTurn={handleStartModification} onExport={handleExport} onCalculateStats={() => setIsStatsOpen(true)} onExportSession={handleExportSession} isDataPresent={turns.length > 0} onSeek={handleSeek} videoFilename={videoFile?.name.split('.')[0] || 'session'} onStartStyleAnalysis={() => setCurrentView('styleAnalysis')} onStartClassification={() => setCurrentView('sequentialClassification')} onExportRawData={() => exportRawDataToCsv(turns, `raw_data_${videoFile?.name.split('.')[0] || 'session'}.csv`)} onExportStylesExcel={handleExportStylesExcel} /></div>
+                    <div><TurnLog turns={turns} referentsTaken={referentsTaken} referentsNotTaken={referentsNotTaken} onDeleteTurn={handleDeleteTurn} onModifyTurn={handleStartModification} onExport={handleExport} onCalculateStats={() => setIsStatsOpen(true)} onExportSession={handleExportSession} isDataPresent={turns.length > 0} onSeek={handleSeek} videoFilename={videoFile?.name.split('.')[0] || 'session'} onStartStyleAnalysis={() => setCurrentView('styleAnalysis')} onStartClassification={() => setCurrentView('sequentialClassification')} onExportRawData={() => exportRawDataToCsv(turns, `raw_data_${videoFile?.name.split('.')[0] || 'session'}.csv`)} onExportStylesExcel={handleExportStylesExcel} /></div>
                 </main>
                 <StatisticsModal isOpen={isStatsOpen} onClose={() => setIsStatsOpen(false)} stats={stats} onExportStats={() => handleExportStats(childName)} onExportStatsCsv={() => handleExportStatsCsv(childName)} onExportStylesExcel={handleExportStylesExcel} onExportProgression={handleExportProgression} />
             </div>
