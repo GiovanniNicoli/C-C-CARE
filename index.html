@@ -157,7 +157,8 @@ const exportStatsToTxt = (stats, filename, childName) => {
 
     content += formatValueLine('Communicative mode:', `${stats.commModePercent.toFixed(2).replace('.', ',')} %`);
     content += formatValueLine('Vocalization type:', stats.predominantVocalization);
-    content += formatValueLine('CEI Score:', stats.cei.toFixed(2).replace('.', ',')); // Added CEI
+    content += formatValueLine('CEI Score:', stats.cei.toFixed(2).replace('.', ','));
+
     content += '\n';
 
     content += `Turn-taking:\n`;
@@ -178,7 +179,7 @@ const exportStatsToTxt = (stats, filename, childName) => {
 
     content += `${'Joint attention:'.padEnd(15, ' ')} ${(stats.ja * 100).toFixed(2).replace('.',',').padStart(10, '_')} %\n\n`;
 
-    content += `Parental Communication Styles:\n`; // Added Styles
+    content += `Parental Communication Styles:\n`; 
     content += formatStatLine('Tutorial:', stats.parentalStyle.percentages.TUTORIAL / 100);
     content += formatStatLine('Didactic:', stats.parentalStyle.percentages.DIDACTIC / 100);
     content += formatStatLine('Directive:', stats.parentalStyle.percentages.DIRECTIVE / 100);
@@ -224,15 +225,10 @@ const exportProgressionToExcel = (turns, filename) => {
 
     const data = [];
 
-    // Cicla attraverso tutti i turni per creare la progressione
     for (let i = 0; i < turns.length; i++) {
-        // Prendi una "fetta" dei turni dal primo fino a quello corrente (i)
         const currentSubset = turns.slice(0, i + 1);
-        
-        // Calcola le statistiche su questo sottoinsieme
         const stats = calculateStatistics(currentSubset);
 
-        // Se ci sono statistiche valide (es. c'è almeno un turno classificato nel sottoinsieme)
         if (stats) {
             data.push({
                 "Turno (Cumulativo)": i + 1,
@@ -258,11 +254,9 @@ const exportProgressionToExcel = (turns, filename) => {
         }
     }
 
-    // Crea il file Excel
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
     
-    // Imposta larghezza colonne automatica (approx)
     const wscols = Object.keys(data[0] || {}).map(() => ({wch: 20}));
     ws['!cols'] = wscols;
 
@@ -421,7 +415,7 @@ const RadioButton = ({ name, value, checked, onChange, children, disabled }) => 
     </label>
 );
 
-// --- TURN FORM (With Eye-Contact Checkbox Logic) ---
+// --- TURN FORM ---
 const TurnForm = ({ turnData, onDataChange, children }) => {
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -545,9 +539,16 @@ const TurnForm = ({ turnData, onDataChange, children }) => {
 
 const TurnRecorder = ({ onAddTurn }) => {
     const { useState } = React;
-    const initialTurnState = { parentAction1: '', parentAction2: '', parentSpeech1: '', parentSpeech2: '', childSpeech1: '', childSpeech2: '', childAction1: '', childAction2: '', focusAttentivoNuovo: false, focusComune: false, focusNonComune: false, eyeContact: 'no', eyeContactAdequacy: 'adequate', parentIntrusion: false, overlapping: false, turnInadequate: false, missedTurn: false, newInformation: false, auditoryOnly: false, referentState: 'none', isUnsure: false };
+    const initialTurnState = { parentAction1: '', parentAction2: '', parentSpeech1: '', parentSpeech2: '', childSpeech1: '', childSpeech2: '', childAction1: '', childAction2: '', focusAttentivoNuovo: false, focusComune: false, focusNonComune: false, eyeContact: '', eyeContactAdequacy: 'adequate', parentIntrusion: false, overlapping: false, turnInadequate: false, missedTurn: false, newInformation: false, auditoryOnly: false, referentState: 'none', isUnsure: false };
     const [turnData, setTurnData] = useState(initialTurnState);
-    const handleSubmit = () => { onAddTurn(turnData); setTurnData(initialTurnState); };
+    const handleSubmit = () => { 
+        if (turnData.eyeContact === '') {
+            alert("Attenzione: Specifica se c'è stato o meno Eye Contact (Yes/No) prima di salvare il turno.");
+            return;
+        }
+        onAddTurn(turnData); 
+        setTurnData(initialTurnState); 
+    };
     return (
         <div className="bg-gradient-to-br from-slate-800 to-slate-900/50 rounded-lg p-3 border border-slate-700 flex flex-col">
             <h2 className="text-xl font-semibold text-slate-300 mb-2">Registra un nuovo turno</h2>
@@ -565,23 +566,19 @@ const VideoPlayer = ({ videoUrl, onFileChange, onTimeUpdate, videoRef, onImportS
 
     const checkAudioCodec = () => {
         const v = videoRef.current;
-        if (!v || v.currentTime < 1) return; // Aspetta almeno 1 secondo di play
+        if (!v || v.currentTime < 1) return; 
 
-        // Verifica per Chrome/Edge/Safari e Firefox
-        // Se i byte audio decodificati sono 0, il codec non è supportato o il video è muto
         const isAudioWorking = 
             (v.webkitAudioDecodedByteCount && v.webkitAudioDecodedByteCount > 0) || 
             (v.mozHasAudio) || 
             (v.audioTracks && v.audioTracks.length > 0);
 
-        // Se non rileva audio, attiva l'avviso. Se lo rileva, spegni l'avviso.
         setAudioWarning(!isAudioWorking);
     };
 
     return (
         <div className="bg-gradient-to-br from-slate-800 to-slate-900/50 rounded-lg p-4 flex flex-col items-center justify-center min-h-[300px] border border-slate-700 relative">
             
-            {/* --- AVVISO AUDIO --- */}
             {audioWarning && (
                 <div className="absolute top-4 right-4 z-10 bg-red-600/90 text-white text-xs p-3 rounded-md shadow-lg border border-red-400 max-w-[250px] animate-pulse">
                     <strong>⚠️ Attenzione Audio</strong><br/>
@@ -604,7 +601,7 @@ const VideoPlayer = ({ videoUrl, onFileChange, onTimeUpdate, videoRef, onImportS
                     className="w-full h-full max-h-[75vh] object-contain rounded-md" 
                     onTimeUpdate={(e) => { 
                         onTimeUpdate(e.currentTarget.currentTime); 
-                        checkAudioCodec(); // <--- CONTROLLO QUI
+                        checkAudioCodec(); 
                     }} 
                     onLoadedMetadata={(e) => onDurationChange(e.currentTarget.duration)} 
                 />
@@ -628,7 +625,7 @@ const TurnCard = ({ turn, index, onModifyTurn, onDeleteTurn, onSeek, isCompact =
             <div><p className="font-semibold text-emerald-300 text-xs">Child Action</p><div className="grid grid-cols-2 gap-1"><p className="bg-slate-900/50 p-1.5 rounded-md min-h-[36px] text-slate-300 break-words">{turn.childAction1 || '\u00A0'}</p><p className="bg-slate-900/50 p-1.5 rounded-md min-h-[36px] text-slate-300 break-words">{turn.childAction2 || '\u00A0'}</p></div></div>
         </div>
         <div className="border-t border-b border-slate-700 my-2 py-2 px-1 text-xs space-y-1">
-            <div className="grid grid-cols-2 gap-1 text-slate-400"><div>Focus: {turn.focusAttentivoNuovo ? (turn.focusComune ? 'Shared' : 'Non-Shared') : 'None'}</div><div>EC: {turn.eyeContact === 'no' ? 'No' : `Yes`} ({turn.eyeContactAdequacy})</div></div>
+            <div className="grid grid-cols-2 gap-1 text-slate-400"><div>Focus: {turn.focusAttentivoNuovo ? (turn.focusComune ? 'Shared' : 'Non-Shared') : 'None'}</div><div>EC: {turn.eyeContact === 'no' ? 'No' : (turn.eyeContact === 'yes' ? `Yes (${turn.eyeContactAdequacy})` : 'N/A')}</div></div>
             <div className="flex flex-wrap gap-1.5 pt-1">
                 {turn.parentIntrusion && <AnnotationBadge color="red">Intr</AnnotationBadge>}{turn.auditoryOnly && <AnnotationBadge color="sky">AU</AnnotationBadge>}{turn.missedTurn && <AnnotationBadge color="amber">* MT</AnnotationBadge>}{turn.turnInadequate && <AnnotationBadge color="red">TI</AnnotationBadge>}{turn.newInformation && <AnnotationBadge color="green">NI</AnnotationBadge>}{turn.overlapping && <AnnotationBadge color="orange">Overlapping</AnnotationBadge>}{turn.referentState === 'taken' && <AnnotationBadge color="green">□ Referent Taken</AnnotationBadge>}{turn.referentState === 'not_taken' && <AnnotationBadge color="amber">☒ Referent Not Taken</AnnotationBadge>}
             </div>
@@ -703,7 +700,14 @@ const EditAndClassifyPanel = ({ turn, onUpdateTurn, onSaveClassification, onCanc
     const { useState } = React;
     const [view, setView] = useState('edit');
     const [editableTurnData, setEditableTurnData] = useState({...turn});
-    const handleUpdate = () => { onUpdateTurn(editableTurnData); onCancel(); };
+    const handleUpdate = () => { 
+        if (editableTurnData.eyeContact === '') {
+            alert("Attenzione: Specifica se c'è stato o meno Eye Contact (Yes/No) prima di aggiornare il turno.");
+            return;
+        }
+        onUpdateTurn(editableTurnData); 
+        onCancel(); 
+    };
     const handleSaveClass = (classificationData) => { onSaveClassification(classificationData); };
     const turnIndex = turn ? turn.index + 1 : 'N/A';
     return (
@@ -722,11 +726,11 @@ const TurnLog = ({ turns, onModifyTurn, onDeleteTurn, onSeek, onExport, onCalcul
             <header className="p-4 flex justify-between items-center flex-wrap gap-4 border-b border-slate-700">
                 <h2 className="text-xl font-semibold text-slate-300">Turn Timeline ({turns.length}) <span className="text-sm text-slate-400 font-normal ml-2">({referentsTaken} presi - {referentsNotTaken} non presi)</span></h2>
                 <div className="flex gap-2 flex-wrap">
-                    <button onClick={onStartClassification} disabled={!isDataPresent} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Classificazione turni</button>
-                    <button onClick={onStartStyleAnalysis} disabled={!isDataPresent} className="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Stili comunicativi genitoriali</button>
+                    <button onClick={onStartClassification} disabled={!isDataPresent} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Classificazione dei turni</button>
+                    <button onClick={onStartStyleAnalysis} disabled={!isDataPresent} className="bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Analisi stili genitoriali</button>
                     <button onClick={onCalculateStats} disabled={!isDataPresent} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Statistiche</button>
-                    <button onClick={onExportSession} disabled={!isDataPresent} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Salva</button>
-                    <button onClick={onExport} disabled={!isDataPresent} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Esporta in txt</button>
+                    <button onClick={onExportSession} disabled={!isDataPresent} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Salva sessione</button>
+                    <button onClick={onExport} disabled={!isDataPresent} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Esporta i turni (txt)</button>
                     <button onClick={onExportRawData} disabled={!isDataPresent} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed text-sm">Dati grezzi (viewer)</button>
                 </div>
             </header>
@@ -765,11 +769,11 @@ const StatisticsModal = ({ isOpen, onClose, stats, onExportStats, onExportStatsC
                     )}
                 </div>
                 <footer className="p-4 border-t border-slate-700 mt-auto flex justify-end gap-4 flex-wrap">
-                    <button type="button" onClick={onExportStats} disabled={!stats} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">Resoconto formato testuale</button>
-                    <button type="button" onClick={onExportStatsCsv} disabled={!stats} className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">Resoconto formato excel</button>
-                    <button type="button" onClick={onExportStylesExcel} disabled={!stats} className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">Tabella stili comunicativi (xlsx)</button>
-                    <button type="button" onClick={onClose} className="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Chiudi</button>
-                    <button type="button" onClick={onExportProgression} disabled={!stats} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">Progressione cumulativa (turno x turno)</button>
+                    <button type="button" onClick={onExportStats} disabled={!stats} className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">RESCONTO TESTUALE</button>
+                    <button type="button" onClick={onExportStatsCsv} disabled={!stats} className="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">RESCONTO EXCEL</button>
+                    <button type="button" onClick={onExportStylesExcel} disabled={!stats} className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">STILI GENITORIALI</button>
+                    <button type="button" onClick={onClose} className="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">CHIUDI</button>
+                    <button type="button" onClick={onExportProgression} disabled={!stats} className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:bg-slate-600 disabled:cursor-not-allowed">ANALISI CUMULATIVA</button>
                 </footer>
             </div>
         </div>
@@ -869,12 +873,10 @@ const App = () => {
     const handleStartModification = (turn) => { const turnWithIndex = {...turn, index: turns.findIndex(t => t.id === turn.id)}; setActiveTurn(turnWithIndex); if (videoRef.current) videoRef.current.pause(); };
     const handleCancelEdit = () => { setActiveTurn(null); };
 
-    // --- FIX: Automatic Classification Sync (Keep logic, revert layout) ---
     const handleUpdateTurn = (updatedTurnData) => { 
         setTurns(prev => prev.map(t => {
             if (t.id !== updatedTurnData.id) return t;
             const newTurn = { ...updatedTurnData };
-            // Auto-update classification snapshot if it exists
             if (newTurn.classification) {
                 newTurn.classification = {
                     ...newTurn.classification, 
