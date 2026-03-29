@@ -426,17 +426,39 @@ const TurnForm = ({ turnData, onDataChange, children }) => {
             else if (name === 'focusComune' && checked) newState.focusNonComune = false;
             else if (name === 'focusNonComune' && checked) newState.focusComune = false;
             if (name === 'overlapping' && checked) newState.turnInadequate = true;
+            if (name === 'auditoryOnly' && checked) newState.eyeContact = 'no';
             return newState;
         });
     };
 
-    const handleChildEyeContactToggle = (e) => {
-        const isChecked = e.target.checked;
-        onDataChange(prev => ({
-            ...prev,
-            eyeContact: isChecked ? 'yes' : prev.eyeContact,
-            childAction2: isChecked ? 'guarda' : (prev.childAction2 === 'guarda' ? '' : prev.childAction2)
-        }));
+    const handleToggleEC = (fieldName) => {
+        onDataChange(prev => {
+            const currentValue = prev[fieldName] || '';
+            const isRemoving = /\bguarda\b/.test(currentValue);
+
+            if (isRemoving) {
+                let newValue = currentValue.replace(/\bguarda\b/g, '').replace(/\s{2,}/g, ' ').trim();
+                const otherField = fieldName === 'childAction1' ? 'childAction2' : 'childAction1';
+                const stillHasEC = /\bguarda\b/.test(prev[otherField] || '');
+                return {
+                    ...prev,
+                    [fieldName]: newValue,
+                    eyeContact: stillHasEC ? prev.eyeContact : ''
+                };
+            } else {
+                const newValue = currentValue ? `${currentValue} guarda` : 'guarda';
+                return {
+                    ...prev,
+                    eyeContact: 'yes',
+                    [fieldName]: newValue
+                };
+            }
+        });
+    };
+
+    const getBtnClass = (fieldName) => {
+        const isActive = /\bguarda\b/.test(turnData[fieldName] || '');
+        return `self-end mb-1 text-[11px] font-medium px-2 py-0.5 rounded border transition-colors ${isActive ? 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-700' : 'bg-slate-700/50 hover:bg-emerald-600 text-emerald-400 hover:text-white border-slate-600'}`;
     };
 
     return (
@@ -494,8 +516,9 @@ const TurnForm = ({ turnData, onDataChange, children }) => {
                     </div>
                     <div>
                         <label className="text-base font-medium text-emerald-300 whitespace-nowrap min-w-[120px]">Azioni bambino</label>
-                        <div className="flex-grow grid grid-cols-2 gap-2 items-end">
-                            <div>
+                        <div className="flex-grow grid grid-cols-2 gap-2 items-start">
+                            <div className="flex flex-col">
+                                <button type="button" onClick={() => handleToggleEC('childAction1')} className={getBtnClass('childAction1')}>EC</button>
                                 <input 
                                     type="text" 
                                     name="childAction1" 
@@ -506,15 +529,7 @@ const TurnForm = ({ turnData, onDataChange, children }) => {
                                 />
                             </div>
                             <div className="flex flex-col">
-                                <label className="flex items-center space-x-2 text-base text-emerald-300 cursor-pointer mb-0.5">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={turnData.childAction2 === 'guarda'} 
-                                        onChange={handleChildEyeContactToggle} 
-                                        className="form-checkbox h-3 w-3 bg-slate-600 border-slate-500 text-emerald-500 focus:ring-emerald-500 rounded" 
-                                    />
-                                    <span className="text-sm">Eye-contact</span>
-                                </label>
+                                <button type="button" onClick={() => handleToggleEC('childAction2')} className={getBtnClass('childAction2')}>EC</button>
                                 <input 
                                     type="text" 
                                     name="childAction2" 
@@ -752,14 +767,17 @@ const StatisticsModal = ({ isOpen, onClose, stats, onExportStats, onExportStatsC
                     {!stats ? (<p className="text-slate-400 text-center py-8">Not enough data to calculate statistics.</p>) : (
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <StatCard title="CEI" value={stats.cei.toFixed(2).replace('.', ',')} description="Communication Efficacy Index" />
+                                {/* QUI PUOI MODIFICARE L'ORDINE DELLE STATISTICHE: SPOSTA LE RIGHE <StatCard /> IN BASE ALLE TUE PREFERENZE */}
                                 <StatCard title="TT-CONS" value={(stats.ttCons * 100).toFixed(2).replace('.', ',')} description="Consistency of Turn-Taking" />
                                 <StatCard title="TT-AD" value={(stats.ttAd * 100).toFixed(2).replace('.', ',')} description="Adequacy of Turn-Taking" />
+                                <StatCard title="AUT" value={(stats.aut * 100).toFixed(2).replace('.', ',')} description="Auditory Autonomy" />
+                                <StatCard title="IN" value={(stats.in * 100).toFixed(2).replace('.', ',')} description="Initiative" />
+                                <StatCard title="EC-PRES" value={(stats.ecPres * 100).toFixed(2).replace('.', ',')} description="Presence of Eye Contact" />
                                 <StatCard title="EC-AD" value={(stats.ecAd * 100).toFixed(2).replace('.', ',')} description="Adequacy of Eye Contact" />
                                 <StatCard title="EC-DEP" value={(stats.ecDep * 100).toFixed(2).replace('.', ',')} description="Dependency on Eye Contact" />
                                 <StatCard title="JA" value={(stats.ja * 100).toFixed(2).replace('.', ',')} description="Joint Attention" />
-                                <StatCard title="AUT" value={(stats.aut * 100).toFixed(2).replace('.', ',')} description="Auditory Autonomy" />
-                                <StatCard title="IN" value={(stats.in * 100).toFixed(2).replace('.', ',')} description="Initiative" />
+                                <StatCard title="CEI" value={stats.cei.toFixed(2).replace('.', ',')} description="Communication Efficacy Index" />
+                                {/* FINE DELLA SEZIONE DI MODIFICA DELL'ORDINE */}
                             </div>
                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div className="bg-slate-700/50 p-4 rounded-lg"><h3 className="text-lg font-semibold text-cyan-400 mb-3">Communicative Profile</h3><StatCard title="COMMUNICATIVE MODE" value={stats.communicativeMode} description="Child's predominant communication mode" /><div className="mt-4"><StatCard title="VOCALIZATION TYPE" value={stats.predominantVocalization} description="Child's most frequent vocalization" /></div></div>
