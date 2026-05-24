@@ -35,6 +35,14 @@
           margin-bottom: 16px;
       }
       
+      .animate-fadeIn {
+          animation: fadeIn 0.4s ease-in-out;
+      }
+      
+      @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+      }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   </head>
@@ -561,6 +569,10 @@ const TurnRecorder = ({ onAddTurn }) => {
             alert("Attenzione: Specifica se c'è stato o meno Eye Contact (Yes/No) prima di salvare il turno.");
             return;
         }
+        if (turnData.focusAttentivoNuovo && !turnData.focusComune && !turnData.focusNonComune) {
+            alert("Attenzione: Seleziona se il Nuovo Focus Attentivo è 'Condiviso' o 'Non condiviso' prima di salvare il turno.");
+            return;
+        }
         onAddTurn(turnData); 
         setTurnData(initialTurnState); 
     };
@@ -694,7 +706,22 @@ const ClassificationForm = ({ turn, onSave, onCancel, initialData, saveButtonTex
 
     const handleRadioChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
     const handleClearRadio = (fieldName) => { setFormData(prev => ({...prev, [fieldName]: ''})); };
-    const handleSubmit = (e) => { e.preventDefault(); const derivedData = { isInadequate: turn.turnInadequate || turn.overlapping, childProvidesNewInfo: turn.newInformation, usesOnlyAuditoryChannel: turn.auditoryOnly, isEyeContactAdequate: turn.eyeContactAdequacy === 'adequate', sharedAttention: turn.focusComune ? 'OBSERVED' : (turn.focusAttentivoNuovo ? 'NOT OBSERVED' : ''), childUnderstandsSemantic: turn.referentState === 'taken' ? 'SI' : (turn.referentState === 'not_taken' ? 'NO' : ''), parentCommunication: initialData?.parentCommunication || {} }; onSave({ ...formData, ...derivedData }); };
+    const handleSubmit = (e) => { 
+        e.preventDefault(); 
+        const derivedData = { 
+            isInadequate: turn.turnInadequate || turn.overlapping, 
+            childProvidesNewInfo: turn.newInformation, 
+            usesOnlyAuditoryChannel: turn.auditoryOnly, 
+            isEyeContactAdequate: turn.eyeContactAdequacy === 'adequate', 
+            sharedAttention: turn.focusComune ? 'OBSERVED' : (turn.focusAttentivoNuovo ? 'NOT OBSERVED' : ''), 
+            childUnderstandsSemantic: turn.referentState === 'taken' ? 'SI' : (turn.referentState === 'not_taken' ? 'NO' : ''), 
+            parentCommunication: {
+                ...(initialData?.parentCommunication || {}),
+                ...(turn.overlapping ? { intromissioni: true } : {})
+            } 
+        }; 
+        onSave({ ...formData, ...derivedData }); 
+    };
 
     const Section = ({ title, onClear, children }) => ( <div className="mb-6"><div className="flex justify-between items-center border-b border-slate-600 pb-2 mb-3"><h3 className="text-md font-semibold text-cyan-300">{title}</h3>{onClear && (<button type="button" onClick={onClear} className="text-xs text-slate-400 hover:text-white hover:underline focus:outline-none">Reset</button>)}</div>{children}</div> );
     const RadioGroup = ({ name, options, selected, onChange, groupRef, showShortcuts = false, textSize = "text-sm" }) => ( <div className="flex flex-wrap gap-x-4 gap-y-2">{options.map((opt, idx) => ( <label key={opt} className={`flex items-center space-x-2 text-slate-300 cursor-pointer ${textSize}`}><input type="radio" name={name} value={opt} checked={selected === opt} onChange={onChange} ref={idx === 0 ? groupRef : null} className="form-radio bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-500 focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800" /><span className={selected === opt ? "text-cyan-400 font-bold" : ""}>{opt}{showShortcuts && <span className="text-slate-500 font-mono text-[10px] ml-1">({idx + 1})</span>}</span></label> ))}</div> );
@@ -704,7 +731,16 @@ const ClassificationForm = ({ turn, onSave, onCancel, initialData, saveButtonTex
             <div className="flex-grow overflow-y-auto p-1 pr-2">
                 <Section title="1. Communication Mode"><RadioGroup name="communicationMode" options={[formData.communicationMode]} selected={formData.communicationMode} onChange={handleRadioChange} textSize="text-xl" showShortcuts={false} /></Section>
                 {isVerbal && (<Section title="2. Vocalization Type" onClear={() => handleClearRadio('vocalizationType')}><RadioGroup name="vocalizationType" options={VOCALIZATION_TYPES} selected={formData.vocalizationType} onChange={handleRadioChange} groupRef={vocalizationGroupRef} textSize="text-sm" showShortcuts={true} /></Section>)}
-                <div className="mt-6 p-4 bg-slate-700/50 rounded-lg text-sm text-slate-300"><h4 className="font-semibold text-slate-200 mb-2">Auto-derived from annotations:</h4><ul className="list-disc list-inside space-y-1"><li>Turn Inadequate: {turn.turnInadequate || turn.overlapping ? 'Yes' : 'No'}</li><li>New Information: {turn.newInformation ? 'Yes' : 'No'}</li><li>Auditory Only: {turn.auditoryOnly ? 'Yes' : 'No'}</li><li>Eye Contact Adequate: {turn.eyeContactAdequacy === 'adequate' ? 'Yes' : 'No'}</li><li>Shared Attention: {turn.focusComune ? 'Yes' : 'No'}</li></ul></div>
+                <div className="mt-6 p-4 bg-slate-700/50 rounded-lg text-sm text-slate-300"><h4 className="font-semibold text-slate-200 mb-2">Auto-derived from annotations:</h4>
+                    <ul className="list-disc list-inside space-y-1">
+                        <li>Turn Inadequate: {turn.turnInadequate || turn.overlapping ? 'Yes' : 'No'}</li>
+                        <li>New Information: {turn.newInformation ? 'Yes' : 'No'}</li>
+                        <li>Auditory Only: {turn.auditoryOnly ? 'Yes' : 'No'}</li>
+                        <li>Eye Contact Adequate: {turn.eyeContactAdequacy === 'adequate' ? 'Yes' : 'No'}</li>
+                        <li>Shared Attention: {turn.focusComune ? 'Yes' : 'No'}</li>
+                        {turn.overlapping && <li><strong>Stile Genitoriale: Intromissioni (Auto-selezionato per Sovrapposizione)</strong></li>}
+                    </ul>
+                </div>
             </div>
             <footer className="p-4 border-t border-slate-700 mt-auto flex gap-4 flex-shrink-0"><button type="button" onClick={onSkip || onCancel} className="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300">{cancelButtonText || 'Cancel'}</button><button type="submit" id="submit-classification-btn" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-300">{saveButtonText || 'Save Classification'}</button></footer>
         </form>
@@ -718,6 +754,10 @@ const EditAndClassifyPanel = ({ turn, onUpdateTurn, onSaveClassification, onCanc
     const handleUpdate = () => { 
         if (editableTurnData.eyeContact === '') {
             alert("Attenzione: Specifica se c'è stato o meno Eye Contact (Yes/No) prima di aggiornare il turno.");
+            return;
+        }
+        if (editableTurnData.focusAttentivoNuovo && !editableTurnData.focusComune && !editableTurnData.focusNonComune) {
+            alert("Attenzione: Seleziona se il Nuovo Focus Attentivo è 'Condiviso' o 'Non condiviso' prima di aggiornare il turno.");
             return;
         }
         onUpdateTurn(editableTurnData); 
@@ -767,7 +807,6 @@ const StatisticsModal = ({ isOpen, onClose, stats, onExportStats, onExportStatsC
                     {!stats ? (<p className="text-slate-400 text-center py-8">Not enough data to calculate statistics.</p>) : (
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {/* QUI PUOI MODIFICARE L'ORDINE DELLE STATISTICHE: SPOSTA LE RIGHE <StatCard /> IN BASE ALLE TUE PREFERENZE */}
                                 <StatCard title="TT-CONS" value={(stats.ttCons * 100).toFixed(2).replace('.', ',')} description="Consistency of Turn-Taking" />
                                 <StatCard title="TT-AD" value={(stats.ttAd * 100).toFixed(2).replace('.', ',')} description="Adequacy of Turn-Taking" />
                                 <StatCard title="AUT" value={(stats.aut * 100).toFixed(2).replace('.', ',')} description="Auditory Autonomy" />
@@ -777,7 +816,6 @@ const StatisticsModal = ({ isOpen, onClose, stats, onExportStats, onExportStatsC
                                 <StatCard title="EC-DEP" value={(stats.ecDep * 100).toFixed(2).replace('.', ',')} description="Dependency on Eye Contact" />
                                 <StatCard title="JA" value={(stats.ja * 100).toFixed(2).replace('.', ',')} description="Joint Attention" />
                                 <StatCard title="CEI" value={stats.cei.toFixed(2).replace('.', ',')} description="Communication Efficacy Index" />
-                                {/* FINE DELLA SEZIONE DI MODIFICA DELL'ORDINE */}
                             </div>
                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div className="bg-slate-700/50 p-4 rounded-lg"><h3 className="text-lg font-semibold text-cyan-400 mb-3">Communicative Profile</h3><StatCard title="COMMUNICATIVE MODE" value={stats.communicativeMode} description="Child's predominant communication mode" /><div className="mt-4"><StatCard title="VOCALIZATION TYPE" value={stats.predominantVocalization} description="Child's most frequent vocalization" /></div></div>
@@ -818,18 +856,87 @@ const ParentalStyleClassifier = ({ turns, onUpdateTurnStyles, onFinish }) => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    const handleParentCommChange = (turnId, strategyId, isChecked) => { const turnToUpdate = turns.find(t => t.id === turnId); if (!turnToUpdate) return; const currentClassification = turnToUpdate.classification || {}; const newParentComm = { ...currentClassification.parentCommunication, [strategyId]: isChecked }; const newClassification = { ...currentClassification, parentCommunication: newParentComm }; onUpdateTurnStyles(turnId, newClassification); };
+    const handleParentCommChange = (turnId, strategyId, isChecked) => { 
+        const turnToUpdate = turns.find(t => t.id === turnId); 
+        if (!turnToUpdate) return; 
+        const currentClassification = turnToUpdate.classification || {
+            parentCommunication: turnToUpdate.overlapping ? { intromissioni: true } : {}
+        }; 
+        const newParentComm = { ...currentClassification.parentCommunication, [strategyId]: isChecked }; 
+        const newClassification = { ...currentClassification, parentCommunication: newParentComm }; 
+        onUpdateTurnStyles(turnId, newClassification); 
+    };
+    
     const groupedStrategies = useMemo(() => { const groups = { T: [], D: [], DC: [], C: [], A: [], UNCATEGORIZED: [] }; PARENT_COMM_STRATEGIES.forEach(strategy => { const styles = PARENT_COMM_STYLES[strategy.id]; if (styles && styles.length > 0) { styles.forEach(styleCode => { if (groups[styleCode]) groups[styleCode].push(strategy); }); } else { groups.UNCATEGORIZED.push(strategy); } }); return groups; }, []);
     const STYLES_CONFIG = { T: { label: 'Tutoriale', color: 'sky' }, D: { label: 'Didattico', color: 'emerald' }, DC: { label: 'Direttivo', color: 'amber' }, C: { label: 'Conversazionale', color: 'violet' }, A: { label: 'Asincronico', color: 'red' } };
     const turnToClassify = turns[currentIndex]; const nextTurn = turns[currentIndex + 1];
-    const renderStyleBox = (code) => { const config = STYLES_CONFIG[code]; if (!config || !groupedStrategies[code]) return null; return ( <div key={code} className={`border border-${config.color}-500/50 rounded-lg p-3`}><h4 className={`font-semibold text-${config.color}-300 mb-2`}>{config.label}</h4><div className="space-y-2 text-sm">{groupedStrategies[code].map(item => ( <label key={item.id} className="flex items-start space-x-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" name={item.id} checked={turnToClassify.classification?.parentCommunication?.[item.id] || false} onChange={(e) => handleParentCommChange(turnToClassify.id, item.id, e.target.checked)} className="form-checkbox mt-1 bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-500" /><span>{item.label}</span></label> ))}</div></div> ); };
+    
+    const renderStyleBox = (code) => { 
+        const config = STYLES_CONFIG[code]; 
+        if (!config || !groupedStrategies[code]) return null; 
+        return ( 
+            <div key={code} className={`border border-${config.color}-500/50 rounded-lg p-3`}>
+                <h4 className={`font-semibold text-${config.color}-300 mb-2`}>{config.label}</h4>
+                <div className="space-y-2 text-sm">
+                    {groupedStrategies[code].map(item => {
+                        let isChecked = false;
+                        if (turnToClassify.classification?.parentCommunication?.[item.id] !== undefined) {
+                            isChecked = turnToClassify.classification.parentCommunication[item.id];
+                        } else if (item.id === 'intromissioni' && turnToClassify.overlapping) {
+                            isChecked = true;
+                        }
+
+                        return ( 
+                            <label key={item.id} className="flex items-start space-x-2 cursor-pointer text-slate-300 hover:text-white">
+                                <input 
+                                    type="checkbox" 
+                                    name={item.id} 
+                                    checked={isChecked} 
+                                    onChange={(e) => handleParentCommChange(turnToClassify.id, item.id, e.target.checked)} 
+                                    className="form-checkbox mt-1 bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-500" 
+                                />
+                                <span>{item.label}</span>
+                            </label> 
+                        );
+                    })}
+                </div>
+            </div> 
+        ); 
+    };
+    
     if (turns.length === 0) return (<div className="text-center p-8"><h2 className="text-2xl font-bold mb-4">No turns to analyze.</h2><button onClick={onFinish} className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg">Back to Main View</button></div>);
     return (
         <div className="flex flex-col h-screen p-4 sm:p-6 lg:p-8 gap-6">
             <header className="flex justify-between items-center pb-4 border-b border-slate-700 flex-shrink-0"><div><h1 className="text-3xl font-bold text-violet-400">Parental Style Analysis</h1><p className="text-slate-400">Classifying Turn {currentIndex + 1} of {turns.length}</p></div><button onClick={onFinish} className="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300">Finish Analysis</button></header>
             <main className="flex-grow grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-hidden">
                 <div className="lg:col-span-1 flex gap-4 overflow-y-auto pr-2"><div className="flex-1"><h2 className="text-lg font-semibold text-slate-300 mb-2">Turn {currentIndex + 1} (to classify)</h2>{turnToClassify && <TurnCard turn={turnToClassify} index={currentIndex} isCompact={true} />}</div><div className="flex-1"><h2 className="text-lg font-semibold text-slate-300 mb-2">Turn {currentIndex + 2} (context)</h2>{nextTurn ? (<TurnCard turn={nextTurn} index={currentIndex + 1} isCompact={true} />) : (<div className="text-slate-500 text-center p-4 h-full flex items-center justify-center bg-slate-800/50 rounded-lg border border-slate-700">End of timeline.</div>)}</div></div>
-                <div className="lg:col-span-1 overflow-y-auto pr-2"><div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start"><div className="space-y-4">{renderStyleBox('T')}{renderStyleBox('D')}</div><div className="space-y-4">{renderStyleBox('DC')}{renderStyleBox('C')}{renderStyleBox('A')}</div></div>{groupedStrategies.UNCATEGORIZED.length > 0 && (<div className="border border-slate-600 rounded-lg p-3 mt-4"><h4 className="font-semibold text-slate-400 mb-2">Uncategorized</h4><div className="space-y-2 text-sm">{groupedStrategies.UNCATEGORIZED.map(item => ( <label key={item.id} className="flex items-start space-x-2 cursor-pointer text-slate-300 hover:text-white"><input type="checkbox" name={item.id} checked={turnToClassify.classification?.parentCommunication?.[item.id] || false} onChange={(e) => handleParentCommChange(turnToClassify.id, item.id, e.target.checked)} className="form-checkbox mt-1 bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-500" /><span>{item.label}</span></label> ))}</div></div>)}</div>
+                <div className="lg:col-span-1 overflow-y-auto pr-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                        <div className="space-y-4">{renderStyleBox('T')}{renderStyleBox('D')}</div>
+                        <div className="space-y-4">{renderStyleBox('DC')}{renderStyleBox('C')}{renderStyleBox('A')}</div>
+                    </div>
+                    {groupedStrategies.UNCATEGORIZED.length > 0 && (
+                        <div className="border border-slate-600 rounded-lg p-3 mt-4">
+                            <h4 className="font-semibold text-slate-400 mb-2">Uncategorized</h4>
+                            <div className="space-y-2 text-sm">
+                                {groupedStrategies.UNCATEGORIZED.map(item => {
+                                    let isChecked = false;
+                                    if (turnToClassify.classification?.parentCommunication?.[item.id] !== undefined) {
+                                        isChecked = turnToClassify.classification.parentCommunication[item.id];
+                                    } else if (item.id === 'intromissioni' && turnToClassify.overlapping) {
+                                        isChecked = true;
+                                    }
+                                    return ( 
+                                        <label key={item.id} className="flex items-start space-x-2 cursor-pointer text-slate-300 hover:text-white">
+                                            <input type="checkbox" name={item.id} checked={isChecked} onChange={(e) => handleParentCommChange(turnToClassify.id, item.id, e.target.checked)} className="form-checkbox mt-1 bg-slate-600 border-slate-500 text-cyan-500 focus:ring-cyan-500" />
+                                            <span>{item.label}</span>
+                                        </label> 
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+                </div>
             </main>
             <footer className="flex-shrink-0 flex justify-center items-center gap-4 pt-4 border-t border-slate-700"><button onClick={() => setCurrentIndex(p => p - 1)} disabled={currentIndex === 0} className="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button><span className="font-semibold">{currentIndex + 1} / {turns.length}</span><button id="style-next-btn" onClick={() => setCurrentIndex(p => p + 1)} disabled={currentIndex >= turns.length - 1} className="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed">Next</button></footer>
         </div>
@@ -873,6 +980,8 @@ const App = () => {
     const referentsTaken = useMemo(() => turns.filter(t => t.referentState === 'taken').length, [turns]);
     const referentsNotTaken = useMemo(() => turns.filter(t => t.referentState === 'not_taken').length, [turns]);
 
+    const childNameValid = childName.trim() !== '';
+
     useEffect(() => {
         const handleKeyDown = (e) => {
             const activeTag = document.activeElement.tagName.toLowerCase();
@@ -903,7 +1012,11 @@ const App = () => {
                     usesOnlyAuditoryChannel: newTurn.auditoryOnly,
                     isEyeContactAdequate: newTurn.eyeContactAdequacy === 'adequate',
                     sharedAttention: newTurn.focusComune ? 'OBSERVED' : (newTurn.focusAttentivoNuovo ? 'NOT OBSERVED' : ''),
-                    childUnderstandsSemantic: newTurn.referentState === 'taken' ? 'SI' : (newTurn.referentState === 'not_taken' ? 'NO' : '')
+                    childUnderstandsSemantic: newTurn.referentState === 'taken' ? 'SI' : (newTurn.referentState === 'not_taken' ? 'NO' : ''),
+                    parentCommunication: {
+                        ...(newTurn.classification.parentCommunication || {}),
+                        ...(newTurn.overlapping ? { intromissioni: true } : {})
+                    }
                 };
             }
             return newTurn;
@@ -912,7 +1025,21 @@ const App = () => {
 
     const handleUpdateTurnStyles = (turnId, newClassification) => { setTurns(prevTurns => prevTurns.map(t => t.id === turnId ? { ...t, classification: newClassification } : t)); };
     const handleUpdateTurnClassification = (turnId, classificationData) => { setTurns(prev => prev.map(t => t.id === turnId ? { ...t, classification: classificationData } : t)); };
-    const handleSaveClassification = (classificationData) => { if (!activeTurn) return; setTurns(prev => prev.map(t => t.id === activeTurn.id ? { ...t, classification: classificationData } : t)); setActiveTurn(null); };
+    const handleSaveClassification = (classificationData) => { 
+        if (!activeTurn) return; 
+        setTurns(prev => prev.map(t => {
+            if (t.id === activeTurn.id) {
+                let newClass = { ...classificationData };
+                if (t.overlapping) {
+                     newClass.parentCommunication = { ...(newClass.parentCommunication || {}), intromissioni: true };
+                }
+                return { ...t, classification: newClass };
+            }
+            return t;
+        })); 
+        setActiveTurn(null); 
+    };
+    
     const handleDeleteTurn = (id) => { if (window.confirm('Are you sure you want to delete this turn? This action cannot be undone.')) { setTurns(prev => prev.filter(t => t.id !== id)); } };
     const handleSeek = (time) => { if(videoRef.current) videoRef.current.currentTime = time; }
     
@@ -924,8 +1051,40 @@ const App = () => {
         exportProgressionToExcel(turns, `progressione_validazione_${videoFile?.name.split('.')[0] || 'session'}.xlsx`);
     };
     
-    const handleExportSession = () => { const sessionData = { videoFilename: videoFile?.name || 'no-video-session', analysisDate: new Date().toISOString(), turns }; const blob = new Blob([JSON.stringify(sessionData, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `session_${videoFile?.name.split('.')[0] || 'export'}.json`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url); };
-    const handleImportSession = (file) => { if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const data = JSON.parse(e.target.result); if (!data.videoFilename || !Array.isArray(data.turns)) throw new Error("Invalid session file format."); setTurns(data.turns); alert(`Session for "${data.videoFilename}" loaded. Please load the correct video file if it's part of this session.`); } catch (error) { alert(`Import error: ${error.message}`); } }; reader.readAsText(file); };
+    const handleExportSession = () => { 
+        const sessionData = { 
+            videoFilename: videoFile?.name || 'no-video-session', 
+            analysisDate: new Date().toISOString(), 
+            childName,
+            turns 
+        }; 
+        const blob = new Blob([JSON.stringify(sessionData, null, 2)], { type: 'application/json' }); 
+        const url = URL.createObjectURL(blob); 
+        const link = document.createElement('a'); 
+        link.href = url; 
+        link.download = `session_${videoFile?.name.split('.')[0] || 'export'}.json`; 
+        document.body.appendChild(link); 
+        link.click(); 
+        document.body.removeChild(link); 
+        URL.revokeObjectURL(url); 
+    };
+    
+    const handleImportSession = (file) => { 
+        if (!file) return; 
+        const reader = new FileReader(); 
+        reader.onload = (e) => { 
+            try { 
+                const data = JSON.parse(e.target.result); 
+                if (!data.videoFilename || !Array.isArray(data.turns)) throw new Error("Invalid session file format."); 
+                setTurns(data.turns); 
+                if (data.childName) setChildName(data.childName);
+                alert(`Session for "${data.videoFilename}" loaded. Please load the correct video file if it's part of this session.`); 
+            } catch (error) { 
+                alert(`Import error: ${error.message}`); 
+            } 
+        }; 
+        reader.readAsText(file); 
+    };
 
     if (currentView === 'styleAnalysis') return <ParentalStyleClassifier turns={turns} onUpdateTurnStyles={handleUpdateTurnStyles} onFinish={() => setCurrentView('main')} />;
     if (currentView === 'sequentialClassification') return <SequentialClassifier turns={turns} onUpdateClassification={handleUpdateTurnClassification} onFinish={() => setCurrentView('main')} />;
@@ -933,17 +1092,40 @@ const App = () => {
     return (
         <div className="min-h-screen bg-slate-900 text-gray-200 font-sans">
             <div className="max-w-[95%] mx-auto p-4">
-                <header className="text-center mb-6 pb-4 border-b border-slate-700/50"><h1 className="text-4xl lg:text-5xl font-bold text-cyan-400 tracking-tight">Communicative Turn Analyzer</h1><p className="text-slate-400 mt-2 text-lg">Record and classify interaction turns, with or without video.</p></header>
-                <div className="mb-6"><label htmlFor="childName" className="block text-sm font-medium text-slate-300">Child's Name</label><input type="text" id="childName" value={childName} onChange={(e) => setChildName(e.target.value)} className="mt-1 block w-full md:w-1/2 bg-slate-700 border border-slate-600 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-cyan-500" placeholder="Enter child's name for the report..." /></div>
-                <main className="flex flex-col gap-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-11 gap-6 items-start">
-                        <div className="lg:col-span-6"><VideoPlayer videoUrl={videoUrl} onFileChange={handleFileChange} onTimeUpdate={setCurrentTime} videoRef={videoRef} onImportSession={handleImportSession} onDurationChange={setVideoDuration} /></div>
-                        <div className="lg:col-span-5">
-                            {activeTurn ? (<EditAndClassifyPanel key={activeTurn.id} turn={activeTurn} onUpdateTurn={handleUpdateTurn} onSaveClassification={handleSaveClassification} onCancel={handleCancelEdit} />) : (<TurnRecorder onAddTurn={handleAddTurn} />)}
+                <header className="text-center mb-6 pb-4 border-b border-slate-700/50">
+                    <h1 className="text-4xl lg:text-5xl font-bold text-cyan-400 tracking-tight">Communicative Turn Analyzer</h1>
+                    <p className="text-slate-400 mt-2 text-lg">Record and classify interaction turns, with or without video.</p>
+                </header>
+                
+                <div className="mb-6 bg-slate-800/50 p-6 rounded-lg border border-slate-700 transition-all duration-300">
+                    <label htmlFor="childName" className="block text-lg font-bold text-slate-200 mb-2">
+                        Nome del Paziente <span className="text-red-400">*</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="childName" 
+                        value={childName} 
+                        onChange={(e) => setChildName(e.target.value)} 
+                        className={`block w-full md:w-1/2 bg-slate-700 border ${!childNameValid ? 'border-red-500 focus:ring-red-500' : 'border-slate-600 focus:ring-cyan-500'} rounded-md p-3 focus:outline-none focus:ring-2 text-lg transition-colors`} 
+                        placeholder="Inserisci il nome per sbloccare l'interfaccia..." 
+                    />
+                    {!childNameValid && (
+                        <p className="text-red-400 text-sm mt-2 font-medium">⚠️ La compilazione di questo campo è obbligatoria per procedere con l'analisi.</p>
+                    )}
+                </div>
+                
+                {childNameValid && (
+                    <main className="flex flex-col gap-8 animate-fadeIn">
+                        <div className="grid grid-cols-1 lg:grid-cols-11 gap-6 items-start">
+                            <div className="lg:col-span-6"><VideoPlayer videoUrl={videoUrl} onFileChange={handleFileChange} onTimeUpdate={setCurrentTime} videoRef={videoRef} onImportSession={handleImportSession} onDurationChange={setVideoDuration} /></div>
+                            <div className="lg:col-span-5">
+                                {activeTurn ? (<EditAndClassifyPanel key={activeTurn.id} turn={activeTurn} onUpdateTurn={handleUpdateTurn} onSaveClassification={handleSaveClassification} onCancel={handleCancelEdit} />) : (<TurnRecorder onAddTurn={handleAddTurn} />)}
+                            </div>
                         </div>
-                    </div>
-                    <div><TurnLog turns={turns} referentsTaken={referentsTaken} referentsNotTaken={referentsNotTaken} onDeleteTurn={handleDeleteTurn} onModifyTurn={handleStartModification} onExport={handleExport} onCalculateStats={() => setIsStatsOpen(true)} onExportSession={handleExportSession} isDataPresent={turns.length > 0} onSeek={handleSeek} videoFilename={videoFile?.name.split('.')[0] || 'session'} onStartStyleAnalysis={() => setCurrentView('styleAnalysis')} onStartClassification={() => setCurrentView('sequentialClassification')} onExportRawData={() => exportRawDataToCsv(turns, `raw_data_${videoFile?.name.split('.')[0] || 'session'}.csv`)} onExportStylesExcel={handleExportStylesExcel} /></div>
-                </main>
+                        <div><TurnLog turns={turns} referentsTaken={referentsTaken} referentsNotTaken={referentsNotTaken} onDeleteTurn={handleDeleteTurn} onModifyTurn={handleStartModification} onExport={handleExport} onCalculateStats={() => setIsStatsOpen(true)} onExportSession={handleExportSession} isDataPresent={turns.length > 0} onSeek={handleSeek} videoFilename={videoFile?.name.split('.')[0] || 'session'} onStartStyleAnalysis={() => setCurrentView('styleAnalysis')} onStartClassification={() => setCurrentView('sequentialClassification')} onExportRawData={() => exportRawDataToCsv(turns, `raw_data_${videoFile?.name.split('.')[0] || 'session'}.csv`)} onExportStylesExcel={handleExportStylesExcel} /></div>
+                    </main>
+                )}
+                
                 <StatisticsModal isOpen={isStatsOpen} onClose={() => setIsStatsOpen(false)} stats={stats} onExportStats={() => handleExportStats(childName)} onExportStatsCsv={() => handleExportStatsCsv(childName)} onExportStylesExcel={handleExportStylesExcel} onExportProgression={handleExportProgression} />
             </div>
         </div>
