@@ -49,9 +49,9 @@
   <body class="bg-slate-900 text-white">
     <div id="root"></div>
 
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
 
     <script type="text/babel">
 // --- CONSTANTS ---
@@ -862,7 +862,7 @@ const ParentalStyleClassifier = ({ turns, onUpdateTurnStyles, onFinish }) => {
         const currentClassification = turnToUpdate.classification || {
             parentCommunication: turnToUpdate.overlapping ? { intromissioni: true } : {}
         }; 
-        const newParentComm = { ...currentClassification.parentCommunication, [strategyId]: isChecked }; 
+        const newParentComm = { ...(currentClassification.parentCommunication || {}), [strategyId]: isChecked }; 
         const newClassification = { ...currentClassification, parentCommunication: newParentComm }; 
         onUpdateTurnStyles(turnId, newClassification); 
     };
@@ -1076,7 +1076,26 @@ const App = () => {
             try { 
                 const data = JSON.parse(e.target.result); 
                 if (!data.videoFilename || !Array.isArray(data.turns)) throw new Error("Invalid session file format."); 
-                setTurns(data.turns); 
+                
+                const patchedTurns = data.turns.map((turn, index) => {
+                    // 1. Assicura un ID univoco
+                    const newTurn = turn.id ? { ...turn } : { ...turn, id: Date.now() + index };
+                    
+                    // 2. Inizializza la struttura della classificazione se mancante o corrotta
+                    if (!newTurn.classification) {
+                        newTurn.classification = {
+                            parentCommunication: {},
+                            communicationMode: "",
+                            vocalizationType: ""
+                        };
+                    } else if (!newTurn.classification.parentCommunication) {
+                        newTurn.classification.parentCommunication = {};
+                    }
+                    
+                    return newTurn;
+                });
+
+                setTurns(patchedTurns); 
                 if (data.childName) setChildName(data.childName);
                 alert(`Session for "${data.videoFilename}" loaded. Please load the correct video file if it's part of this session.`); 
             } catch (error) { 
@@ -1088,7 +1107,6 @@ const App = () => {
 
     if (currentView === 'styleAnalysis') return <ParentalStyleClassifier turns={turns} onUpdateTurnStyles={handleUpdateTurnStyles} onFinish={() => setCurrentView('main')} />;
     if (currentView === 'sequentialClassification') return <SequentialClassifier turns={turns} onUpdateClassification={handleUpdateTurnClassification} onFinish={() => setCurrentView('main')} />;
-
     return (
         <div className="min-h-screen bg-slate-900 text-gray-200 font-sans">
             <div className="max-w-[95%] mx-auto p-4">
