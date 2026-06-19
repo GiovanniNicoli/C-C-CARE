@@ -1070,40 +1070,47 @@ const App = () => {
     };
     
     const handleImportSession = (file) => { 
-        if (!file) return; 
-        const reader = new FileReader(); 
-        reader.onload = (e) => { 
-            try { 
-                const data = JSON.parse(e.target.result); 
-                if (!data.videoFilename || !Array.isArray(data.turns)) throw new Error("Invalid session file format."); 
+    if (!file) return; 
+    const reader = new FileReader(); 
+    reader.onload = (e) => { 
+        try { 
+            const data = JSON.parse(e.target.result); 
+            if (!data.videoFilename || !Array.isArray(data.turns)) throw new Error("Invalid session file format."); 
+            
+            const patchedTurns = data.turns.map((turn, index) => {
+                const newTurn = turn.id ? { ...turn } : { ...turn, id: Date.now() + index };
                 
-                const patchedTurns = data.turns.map((turn, index) => {
-                    // 1. Assicura un ID univoco
-                    const newTurn = turn.id ? { ...turn } : { ...turn, id: Date.now() + index };
-                    
-                    // 2. Inizializza la struttura della classificazione se mancante o corrotta
-                    if (!newTurn.classification) {
-                        newTurn.classification = {
-                            parentCommunication: {},
-                            communicationMode: "",
-                            vocalizationType: ""
-                        };
-                    } else if (!newTurn.classification.parentCommunication) {
-                        newTurn.classification.parentCommunication = {};
-                    }
-                    
-                    return newTurn;
-                });
+                if (!newTurn.classification) {
+                    newTurn.classification = {
+                        parentCommunication: {},
+                        communicationMode: "",
+                        vocalizationType: "",
+                        isInadequate: false,
+                        childProvidesNewInfo: false,
+                        usesOnlyAuditoryChannel: false,
+                        isEyeContactAdequate: false
+                    };
+                } else {
+                    // Normalizzazione dei campi mancanti nei vecchi file
+                    newTurn.classification.parentCommunication = newTurn.classification.parentCommunication || {};
+                    newTurn.classification.isInadequate = newTurn.classification.isInadequate ?? (newTurn.turnInadequate || newTurn.overlapping || false);
+                    newTurn.classification.childProvidesNewInfo = newTurn.classification.childProvidesNewInfo ?? (newTurn.newInformation || false);
+                    newTurn.classification.usesOnlyAuditoryChannel = newTurn.classification.usesOnlyAuditoryChannel ?? (newTurn.auditoryOnly || false);
+                    newTurn.classification.isEyeContactAdequate = newTurn.classification.isEyeContactAdequate ?? (newTurn.eyeContactAdequacy === 'adequate');
+                }
+                
+                return newTurn;
+            });
 
-                setTurns(patchedTurns); 
-                if (data.childName) setChildName(data.childName);
-                alert(`Session for "${data.videoFilename}" loaded. Please load the correct video file if it's part of this session.`); 
-            } catch (error) { 
-                alert(`Import error: ${error.message}`); 
-            } 
-        }; 
-        reader.readAsText(file); 
-    };
+            setTurns(patchedTurns); 
+            if (data.childName) setChildName(data.childName);
+            alert(`Session for "${data.videoFilename}" loaded. Please load the correct video file if it's part of this session.`); 
+        } catch (error) { 
+            alert(`Import error: ${error.message}`); 
+        } 
+    }; 
+    reader.readAsText(file); 
+};
 
     if (currentView === 'styleAnalysis') return <ParentalStyleClassifier turns={turns} onUpdateTurnStyles={handleUpdateTurnStyles} onFinish={() => setCurrentView('main')} />;
     if (currentView === 'sequentialClassification') return <SequentialClassifier turns={turns} onUpdateClassification={handleUpdateTurnClassification} onFinish={() => setCurrentView('main')} />;
